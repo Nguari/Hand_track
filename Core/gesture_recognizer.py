@@ -30,6 +30,19 @@ class GestureRecognizer:
         return GestureRecognizer.distance(thumb_tip, index_tip) < threshold
 
     @staticmethod
+    def is_three_finger_pinch(landmarks, threshold=45):
+        """Détecte un pincement à 3 doigts : pouce (4), index (8), majeur (12) rapprochés."""
+        if len(landmarks) < 13:
+            return False
+        thumb_tip = landmarks[4]
+        index_tip = landmarks[8]
+        middle_tip = landmarks[12]
+        d1 = GestureRecognizer.distance(thumb_tip, index_tip)
+        d2 = GestureRecognizer.distance(thumb_tip, middle_tip)
+        d3 = GestureRecognizer.distance(index_tip, middle_tip)
+        return d1 < threshold and d2 < threshold and d3 < threshold
+
+    @staticmethod
     def count_fingers_up(landmarks):
         """
         Compte le nombre de doigts levés.
