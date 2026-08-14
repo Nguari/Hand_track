@@ -1,16 +1,10 @@
 """
 zone_selector.py
 -------------------
-Exemple : présente tes deux mains à la webcam et pince pouce-index sur
-CHAQUE main pour définir une zone rectangulaire. La sélection démarre au
-premier pincement simultané, puis suit la tendance de vos mains même si
-vous relâchez le pincement. Un second pincement simultané fige la zone.
+Exemple : sélection d'une zone par pincement à deux mains, filtres et réglage
+d'intensité par glissement vertical pendant le pincement.
 
-Touches :
-    S      -> sauvegarde la zone sélectionnée comme image (crop_N.png)
-    Échap  -> quitter
-
-À lancer depuis la racine du projet :
+Lancer depuis la racine du projet :
     python -m examples.zone_selector
 """
 
@@ -33,9 +27,6 @@ ASPECT_RATIOS = [
 # Filtres disponibles pour la zone
 FILTERS = ["normal", "gray", "invert", "sepia", "saturated", "high_contrast"]
 
-# Filtres disponibles pour la zone
-FILTERS = ["normal", "gray", "invert", "sepia", "saturated", "high_contrast"]
-
 
 def get_pinch_point(landmarks):
     thumb = landmarks[4]
@@ -45,10 +36,6 @@ def get_pinch_point(landmarks):
     return ((x1 + x2) // 2, (y1 + y2) // 2)
 
 
-    filter_index = 0
-    filter_intensity = 1.0
-    was_filter_pinching = False
-    prev_filter_y = None
 def normalize_rect(p1, p2):
     x1, y1 = p1
     x2, y2 = p2
@@ -83,8 +70,15 @@ def main():
     save_counter = 0
     ratio_index = 0
     filter_index = 0
+    filter_intensity = 1.0
     was_filter_pinching = False
+    prev_filter_y = None
     was_three_pinch = False
+    was_single_pinch = False
+
+    if not cap.isOpened():
+        print("Erreur : impossible d'accéder à la webcam.")
+        return
 
     while True:
         success, frame = cap.read()
@@ -102,6 +96,7 @@ def main():
         live_rect = None
         three_pinch_now = False
 
+        # détection 2 mains : sélection
         if num_hands >= 2 and landmarks_0 and landmarks_1:
             pinching_0 = GestureRecognizer.is_pinching(landmarks_0)
             pinching_1 = GestureRecognizer.is_pinching(landmarks_1)
@@ -112,8 +107,6 @@ def main():
             cv2.circle(frame, point_0, 12, (0, 255, 0) if pinching_0 else (0, 0, 255), -1)
             cv2.circle(frame, point_1, 12, (0, 255, 0) if pinching_1 else (0, 0, 255), -1)
 
-            # toggle : démarrer la sélection au premier pincement double,
-            # confirmer/figer au pincement double suivant
             if pinching_0 and pinching_1:
                 if not selecting:
                     selecting = True
@@ -123,23 +116,35 @@ def main():
                     selecting = False
             else:
                 if selecting:
-                    # suivre la tendance des mains même sans pincement
                     live_rect = normalize_rect(point_0, point_1)
+                else:
+                    selecting = False
 
-            # Single-hand pinch while selecting -> cycle color filter
+            # single-hand pinch to cycle filter and adjust intensity
             single_hand_pinching = False
+            pinching_hand_y = None
             if selecting:
                 single_hand_pinching = (pinching_0 != pinching_1)
+                if single_hand_pinching:
+                    pinching_hand = landmarks_0 if pinching_0 else landmarks_1
+                    _, _, pinching_hand_y = pinching_hand[4]
 
             if single_hand_pinching and not was_filter_pinching:
                 filter_index = (filter_index + 1) % len(FILTERS)
                 was_filter_pinching = True
-            if not single_hand_pinching:
-            frame = apply_color_filter_to_rect(frame, live_rect, FILTERS[filter_index], intensity=filter_intensity)
-            frame = draw_intensity_bar(frame, live_rect, filter_intensity)
+                prev_filter_y = pinching_hand_y
 
-        # Détection du pincement à 3 doigts (sur l'une ou l'autre main),
-            draw_text(frame, f"Filtre: {FILTERS[filter_index]} ({filter_intensity:.2f})", position=(x1, max(y1 - 35, 10)), color=(0, 255, 255), scale=0.6)
+            if single_hand_pinching and was_filter_pinching and prev_filter_y is not None and pinching_hand_y is not None:
+                dy = prev_filter_y - pinching_hand_y
+                sensitivity = 0.005
+                filter_intensity = max(0.2, min(2.0, filter_intensity + dy * sensitivity))
+                prev_filter_y = pinching_hand_y
+
+            if not single_hand_pinching:
+                was_filter_pinching = False
+                prev_filter_y = None
+
+        # change format with three-finger pinch when confirmed
         if confirmed_rect and not selecting:
             for lm in (landmarks_0, landmarks_1):
                 if lm and GestureRecognizer.is_three_finger_pinch(lm):
@@ -157,11 +162,11 @@ def main():
         # affichage
         if live_rect:
             x1, y1, x2, y2 = live_rect
-            # appliquer filtre courant à la zone en cours
-            frame = apply_color_filter_to_rect(frame, live_rect, FILTERS[filter_index])
+            frame = apply_color_filter_to_rect(frame, live_rect, FILTERS[filter_index], intensity=filter_intensity)
             cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 255), 2)
             draw_text(frame, f"{x2 - x1} x {y2 - y1}", position=(x1, max(y1 - 15, 20)), scale=0.7)
-            draw_text(frame, f"Filtre: {FILTERS[filter_index]}", position=(x1, max(y1 - 35, 10)), color=(0, 255, 255), scale=0.6)
+            draw_text(frame, f"Filtre: {FILTERS[filter_index]} ({filter_intensity:.2f})", position=(x1, max(y1 - 35, 10)), color=(0, 255, 255), scale=0.6)
+            frame = draw_intensity_bar(frame, live_rect, filter_intensity)
         elif confirmed_rect:
             x1, y1, x2, y2 = confirmed_rect
             cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
@@ -180,10 +185,14 @@ def main():
         elif key in (ord('s'), ord('S')) and confirmed_rect:
             x1, y1, x2, y2 = confirmed_rect
             if x2 > x1 and y2 > y1:
-                crop = frame[y1:y2, x1:x2]
+                roi = frame[y1:y2, x1:x2].copy()
+                h_roi, w_roi = roi.shape[:2]
+                filtered_roi = roi.copy()
+                filtered_roi = apply_color_filter_to_rect(filtered_roi, (0, 0, w_roi, h_roi), FILTERS[filter_index], intensity=filter_intensity)
+
                 save_counter += 1
                 filename = f"crop_{save_counter}.png"
-                cv2.imwrite(filename, crop)
+                cv2.imwrite(filename, filtered_roi)
                 print(f"Zone sauvegardee : {filename}")
                 show_countdown_on_frame(frame, seconds=3, window_name="Zone Selector")
 

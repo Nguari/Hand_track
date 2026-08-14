@@ -82,7 +82,22 @@ def apply_color_filter_to_rect(frame, rect, mode, intensity=1.0):
     - `intensity` : float (approx 0.2 .. 2.0) qui module l'effet
     Retourne la frame modifiée en place.
     """
-    x1, y1, x2, y2 = rect
+    try:
+        x1, y1, x2, y2 = rect
+        x1 = int(x1)
+        y1 = int(y1)
+        x2 = int(x2)
+        y2 = int(y2)
+    except Exception:
+        return frame
+
+    h_frame, w_frame = frame.shape[:2]
+    # clamp coordinates to image bounds
+    x1 = max(0, min(w_frame - 1, x1))
+    x2 = max(0, min(w_frame, x2))
+    y1 = max(0, min(h_frame - 1, y1))
+    y2 = max(0, min(h_frame, y2))
+
     if x2 <= x1 or y2 <= y1:
         return frame
 

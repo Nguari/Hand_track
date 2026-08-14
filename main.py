@@ -130,7 +130,8 @@ def main():
 
             # Si une zone est déjà figée, un pincement simple (une seule
             # main) déclenche la sauvegarde -- une seule fois par geste.
-            if confirmed_rect and single_pinch_now and not was_single_pinch:
+            # On sauvegarde sur front montant (pincement) ET front descendant (relâchement)
+            if confirmed_rect and ((single_pinch_now and not was_single_pinch) or (not single_pinch_now and was_single_pinch)):
                 trigger_save = True
 
         was_single_pinch = single_pinch_now
@@ -248,10 +249,16 @@ def main():
         if trigger_save and confirmed_rect:
             x1, y1, x2, y2 = confirmed_rect
             if x2 > x1 and y2 > y1:
-                crop = frame[y1:y2, x1:x2]
+                # extraire le ROI original et y appliquer le filtre sélectionné
+                roi = frame[y1:y2, x1:x2].copy()
+                h_roi, w_roi = roi.shape[:2]
+                # appliquer le filtre sur un petit frame dont le rect est (0,0,w,h)
+                filtered_roi = roi.copy()
+                filtered_roi = apply_color_filter_to_rect(filtered_roi, (0, 0, w_roi, h_roi), FILTERS[filter_index], intensity=filter_intensity)
+
                 save_counter += 1
                 filename = f"crop_{save_counter}.png"
-                cv2.imwrite(filename, crop)
+                cv2.imwrite(filename, filtered_roi)
                 print(f"Zone sauvegardee : {filename}")
                 # Affiche un compte à rebours en gras pendant 3 secondes
                 show_countdown_on_frame(frame, seconds=3, window_name="Hand Tracking")
