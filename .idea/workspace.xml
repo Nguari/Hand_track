@@ -5,15 +5,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="b2adb035-fc40-4636-be8e-a6a64e376eae" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Utils/drawing.py" beforeDir="false" afterPath="$PROJECT_DIR$/Utils/drawing.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/crop_1.png" beforeDir="false" afterPath="$PROJECT_DIR$/crop_1.png" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/crop_2.png" beforeDir="false" afterPath="$PROJECT_DIR$/crop_2.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/crop_3.png" beforeDir="false" afterPath="$PROJECT_DIR$/crop_3.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/crop_4.png" beforeDir="false" afterPath="$PROJECT_DIR$/crop_4.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/crop_5.png" beforeDir="false" afterPath="$PROJECT_DIR$/crop_5.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examples/zone_selector.py" beforeDir="false" afterPath="$PROJECT_DIR$/examples/zone_selector.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

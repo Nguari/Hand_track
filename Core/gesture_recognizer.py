@@ -43,6 +43,20 @@ class GestureRecognizer:
         return d1 < threshold and d2 < threshold and d3 < threshold
 
     @staticmethod
+    def fingers_down(landmarks, threshold=45):
+        """Détecte une main fermée (tous les doigts repliés).
+
+        La valeur de `threshold` est conservée pour compatibilité avec
+        l'API existante, mais la détection se base sur l'état des doigts
+        (levés ou repliés), pas sur une distance entre extrémités.
+        """
+        if len(landmarks) < 21:
+            return False
+
+        # Une main fermée corresond à 0 doigts levés
+        return GestureRecognizer.count_fingers_up(landmarks) == 0
+
+    @staticmethod
     def count_fingers_up(landmarks):
         """
         Compte le nombre de doigts levés.
